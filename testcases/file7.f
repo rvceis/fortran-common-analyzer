@@ -1,0 +1,6 @@
+      INTEGER A
+      DOUBLE PRECISION D
+
+      COMMON /BADALIGN/ A, D
+
+      END

@@ -1,81 +1,96 @@
+# DESIGN DOCUMENT
 
-## Objective
+# Objective
 
-The objective of this project is to detect memory safety violations caused by inconsistent Fortran COMMON block declarations across multiple translation units.
+The objective of this project is to detect unsafe memory usage patterns caused by inconsistent COMMON block declarations across multiple Fortran translation units.
 
 ---
 
 # System Architecture
 
 ```text
-Fortran Files
-     ↓
+Fortran Source Files
+        ↓
 Source Parser
-     ↓
+        ↓
 COMMON Block Extractor
-     ↓
+        ↓
 Global COMMON Database
-     ↓
+        ↓
+Memory Layout Builder
+        ↓
 Validation Engine
-     ↓
-Diagnostics Reporter
+        ↓
+Diagnostics + Migration Advisor
 Design Approach
 
-The analyzer uses a multi-pass static-analysis pipeline:
+The analyzer uses a multi-pass static-analysis pipeline.
 
-Parse all source files
-Extract variable declarations
-Build COMMON block layouts
-Compute memory sizes and offsets
-Compare layouts across files
-Report inconsistencies
-Memory Layout Model
-
-Each COMMON block is modeled as:
-
-variable sequence
-type information
-byte offsets
-total memory size
-alignment requirements
-Analysis Passes
-Pass 1 — COMMON Collection
+Pass 1 — Metadata Collection
 
 Collects:
 
-COMMON name
-variables
-source file
-declaration info
-Pass 2 — Layout Construction
+SAVE attributes
+EQUIVALENCE relations
+Pass 2 — Semantic Parsing
 
-Builds:
+Extracts:
 
-variable offsets
-memory sizes
-alignment metadata
+variable declarations
+COMMON blocks
+types
+array sizes
+offsets
 Pass 3 — Validation
 
 Performs:
 
 size mismatch analysis
 type punning analysis
-alignment validation
+alignment analysis
+structural layout validation
+SAVE consistency analysis
+EQUIVALENCE analysis
+Memory Layout Model
+
+Each COMMON block is represented as:
+
+variable sequence
+type information
+total size
+byte offsets
+alignment requirements
+Design Decisions
+Regex-Based Prototype
+
+The current implementation uses regex-based parsing for:
+
+rapid prototyping
+easier debugging
+incremental development
+Modular Analysis Passes
+
+Each validator is implemented independently:
+
+improves maintainability
+simplifies debugging
+supports future LLVM integration
 Alternatives Considered
-Direct LLVM IR Analysis
+Full Flang AST Traversal
+
+Planned for future work.
 
 Rejected initially because:
 
-difficult for rapid prototyping
-harder debugging
-Full Flang AST Traversal
+higher implementation complexity
+slower prototyping
+LLVM IR Analysis
 
-Planned for final integration after prototype stabilization.
+Rejected because:
 
-Current Implementation Strategy
-
-The current version uses regex-based parsing for:
-
-faster prototyping
-easier debugging
-incremental validator development
+COMMON-level semantics are easier to analyze before IR lowering
+Current Limitations
+Partial Fortran grammar support
+Prototype-level parser
+No CFG analysis
+No interprocedural flow analysis

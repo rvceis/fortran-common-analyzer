@@ -1,0 +1,4 @@
+      REAL X
+      COMMON /SAVEBLOCK/ X
+      SAVE /SAVEBLOCK/
+      END
