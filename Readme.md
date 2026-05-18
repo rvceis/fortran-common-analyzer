@@ -63,16 +63,18 @@ WARNING: EQUIVALENCE detected
 
 
 # Technologies Used
-C++
-Static Analysis
-Regex-based Parsing Prototype
-Compiler Design Concepts
-Memory Layout Validation
+- C++17
+- LLVM 17 / Flang Compiler API
+- Static Analysis
+- Regex-based Parsing Prototype (Currently migrating to full AST)
+- Compiler Design Concepts
+- Memory Layout Validation
 
 
 # Future Work
-LLVM/Flang AST integration
-JSON diagnostics
-HTML reporting
-Automatic code refactoring
-CFG-based storage analysis
+- Full transition from Regex to LLVM/Flang AST traversal in `main.cpp`
+- Enhanced semantic analysis for complex Fortran grammar
+- JSON diagnostics
+- HTML reporting
+- Automatic code refactoring
+- CFG-based storage analysis

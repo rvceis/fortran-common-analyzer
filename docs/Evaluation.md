@@ -53,15 +53,15 @@ Detected improperly aligned DOUBLE PRECISION variables.
 
 # Limitations
 
-- Regex prototype parser
-- Partial Fortran grammar support
-- Limited semantic analysis
+- Regex prototype parser is still the primary engine in `main.cpp`.
+- The new LLVM/Flang parser has been integrated into the build system but not fully hooked into the analysis pipeline.
+- Limited semantic analysis until AST traversal is complete.
 
 ---
 
 # Future Evaluation
 
 Planned evaluation on:
-- LAPACK
-- BLAS
-- Legacy scientific Fortran codebases
+- Full grammar parsing using the newly linked LLVM/Flang libraries.
+- Validation on LAPACK and BLAS.
+- Legacy scientific Fortran codebases.

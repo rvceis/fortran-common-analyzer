@@ -13,7 +13,8 @@ using namespace std;
 // DATA STRUCTURES
 // ============================================================
 
-struct VariableInfo {
+struct VariableInfo
+{
     string name;
     string type;
     int count = 1;
@@ -23,7 +24,8 @@ struct VariableInfo {
     int lineNumber = 0;
 };
 
-struct CommonEntry {
+struct CommonEntry
+{
     string fileName;
     string blockName;
     vector<VariableInfo> vars;
@@ -36,7 +38,8 @@ struct CommonEntry {
 
 vector<CommonEntry> commonDB;
 map<string, vector<CommonEntry>> groupedBlocks;
-struct EquivalenceInfo {
+struct EquivalenceInfo
+{
 
     string fileName;
     string left;
@@ -48,43 +51,48 @@ vector<EquivalenceInfo> equivalenceDB;
 // UTILITY FUNCTIONS
 // ============================================================
 
-int getTypeSize(const string &type) {
+int getTypeSize(const string &type)
+{
 
-    if(type == "REAL")
+    if (type == "REAL")
         return 4;
 
-    if(type == "INTEGER")
+    if (type == "INTEGER")
         return 4;
 
-    if(type == "DOUBLE PRECISION")
+    if (type == "DOUBLE PRECISION")
         return 8;
 
     return 4;
 }
 
-int getAlignment(const string &type) {
+int getAlignment(const string &type)
+{
 
-    if(type == "DOUBLE PRECISION")
+    if (type == "DOUBLE PRECISION")
         return 8;
 
     return 4;
 }
 
-int getCommonSize(const CommonEntry &entry) {
+int getCommonSize(const CommonEntry &entry)
+{
 
     int total = 0;
 
-    for(const auto &v : entry.vars)
+    for (const auto &v : entry.vars)
         total += v.totalSize;
 
     return total;
 }
 
-string buildLayoutSignature(const CommonEntry &entry) {
+string buildLayoutSignature(const CommonEntry &entry)
+{
 
     string sig;
 
-    for(const auto &v : entry.vars) {
+    for (const auto &v : entry.vars)
+    {
 
         sig += v.type;
         sig += ":";
@@ -97,11 +105,10 @@ string buildLayoutSignature(const CommonEntry &entry) {
     return sig;
 }
 
-void printHeader(const string &title) {
+void printHeader(const string &title)
+{
 
-    cout << "\n===== "
-         << title
-         << " =====\n";
+    cout << "\n===== " << title << " =====\n";
 }
 
 // ============================================================
@@ -110,18 +117,19 @@ void printHeader(const string &title) {
 
 void printAnalysis(
     const string &category,
-    const vector<string> &messages
-) {
+    const vector<string> &messages)
+{
 
     printHeader(category);
 
-    if(messages.empty()) {
+    if (messages.empty())
+    {
 
         cout << "No issues detected.\n";
         return;
     }
 
-    for(const auto &msg : messages)
+    for (const auto &msg : messages)
         cout << msg << "\n";
 }
 
@@ -129,15 +137,17 @@ void printAnalysis(
 // ANALYSIS PASSES
 // ============================================================
 
-vector<string> analyzeSizeMismatch() {
+vector<string> analyzeSizeMismatch()
+{
 
     vector<string> results;
 
-    for(const auto &block : groupedBlocks) {
+    for (const auto &block : groupedBlocks)
+    {
 
         const auto &entries = block.second;
 
-        if(entries.size() < 2)
+        if (entries.size() < 2)
             continue;
 
         int expectedSize =
@@ -145,24 +155,27 @@ vector<string> analyzeSizeMismatch() {
 
         bool mismatch = false;
 
-        for(size_t i = 1; i < entries.size(); i++) {
+        for (size_t i = 1; i < entries.size(); i++)
+        {
 
-            if(getCommonSize(entries[i])
-                != expectedSize) {
+            if (getCommonSize(entries[i]) != expectedSize)
+            {
 
                 mismatch = true;
                 break;
             }
         }
 
-        if(mismatch) {
+        if (mismatch)
+        {
 
             string msg =
                 "\nERROR: COMMON Block " +
                 block.first +
                 " has inconsistent sizes\n";
 
-            for(const auto &e : entries) {
+            for (const auto &e : entries)
+            {
 
                 msg += "  File: " +
                        e.fileName +
@@ -178,22 +191,26 @@ vector<string> analyzeSizeMismatch() {
     return results;
 }
 
-vector<string> analyzeTypePunning() {
+vector<string> analyzeTypePunning()
+{
 
     vector<string> results;
 
-    for(const auto &block : groupedBlocks) {
+    for (const auto &block : groupedBlocks)
+    {
 
         const auto &entries = block.second;
 
-        if(entries.size() < 2)
+        if (entries.size() < 2)
             continue;
 
-        for(size_t i = 0; i < entries.size(); i++) {
+        for (size_t i = 0; i < entries.size(); i++)
+        {
 
-            for(size_t j = i + 1;
-                j < entries.size();
-                j++) {
+            for (size_t j = i + 1;
+                 j < entries.size();
+                 j++)
+            {
 
                 const auto &vars1 =
                     entries[i].vars;
@@ -205,12 +222,13 @@ vector<string> analyzeTypePunning() {
                     min(vars1.size(),
                         vars2.size());
 
-                for(size_t k = 0;
-                    k < limit;
-                    k++) {
+                for (size_t k = 0;
+                     k < limit;
+                     k++)
+                {
 
-                    if(vars1[k].type
-                        != vars2[k].type) {
+                    if (vars1[k].type != vars2[k].type)
+                    {
 
                         string msg =
                             "\nWARNING: COMMON Block " +
@@ -245,15 +263,19 @@ vector<string> analyzeTypePunning() {
     return results;
 }
 
-vector<string> analyzeAlignment() {
+vector<string> analyzeAlignment()
+{
 
     vector<string> results;
 
-    for(const auto &entry : commonDB) {
+    for (const auto &entry : commonDB)
+    {
 
-        for(const auto &v : entry.vars) {
+        for (const auto &v : entry.vars)
+        {
 
-            if(v.offset % v.alignment != 0) {
+            if (v.offset % v.alignment != 0)
+            {
 
                 string msg =
                     "\nWARNING: Alignment violation detected\n";
@@ -290,28 +312,32 @@ vector<string> analyzeAlignment() {
     return results;
 }
 
-vector<string> analyzeStructuralLayouts() {
+vector<string> analyzeStructuralLayouts()
+{
 
     vector<string> results;
 
-    for(const auto &block : groupedBlocks) {
+    for (const auto &block : groupedBlocks)
+    {
 
         const auto &entries = block.second;
 
-        if(entries.size() < 2)
+        if (entries.size() < 2)
             continue;
 
         string baseLayout =
             buildLayoutSignature(entries[0]);
 
-        for(size_t i = 1;
-            i < entries.size();
-            i++) {
+        for (size_t i = 1;
+             i < entries.size();
+             i++)
+        {
 
             string currentLayout =
                 buildLayoutSignature(entries[i]);
 
-            if(baseLayout != currentLayout) {
+            if (baseLayout != currentLayout)
+            {
 
                 string msg =
                     "\nWARNING: COMMON Block " +
@@ -334,15 +360,17 @@ vector<string> analyzeStructuralLayouts() {
     return results;
 }
 
-vector<string> analyzeSaveConsistency() {
+vector<string> analyzeSaveConsistency()
+{
 
     vector<string> results;
 
-    for(const auto &block : groupedBlocks) {
+    for (const auto &block : groupedBlocks)
+    {
 
         const auto &entries = block.second;
 
-        if(entries.size() < 2)
+        if (entries.size() < 2)
             continue;
 
         bool reference =
@@ -350,34 +378,37 @@ vector<string> analyzeSaveConsistency() {
 
         bool mismatch = false;
 
-        for(size_t i = 1;
-            i < entries.size();
-            i++) {
+        for (size_t i = 1;
+             i < entries.size();
+             i++)
+        {
 
-            if(entries[i].hasSave
-                != reference) {
+            if (entries[i].hasSave != reference)
+            {
 
                 mismatch = true;
                 break;
             }
         }
 
-        if(mismatch) {
+        if (mismatch)
+        {
 
             string msg =
                 "\nWARNING: COMMON Block " +
                 block.first +
                 " has inconsistent SAVE usage\n";
 
-            for(const auto &e : entries) {
+            for (const auto &e : entries)
+            {
 
                 msg += "  File: " +
                        e.fileName +
                        " -> ";
 
                 msg += (e.hasSave)
-                    ? "SAVE enabled\n"
-                    : "SAVE missing\n";
+                           ? "SAVE enabled\n"
+                           : "SAVE missing\n";
             }
 
             results.push_back(msg);
@@ -390,21 +421,26 @@ vector<string> analyzeSaveConsistency() {
 // ============================================================
 // FIXED EQUIVALENCE ANALYSIS
 // ============================================================
-vector<string> analyzeEquivalence() {
+vector<string> analyzeEquivalence()
+{
 
     vector<string> results;
 
-    for(const auto &eq : equivalenceDB) {
+    for (const auto &eq : equivalenceDB)
+    {
 
-        for(const auto &entry : commonDB) {
+        for (const auto &entry : commonDB)
+        {
 
             // SAME FILE ONLY
-            if(entry.fileName != eq.fileName)
+            if (entry.fileName != eq.fileName)
                 continue;
 
-            for(const auto &v : entry.vars) {
+            for (const auto &v : entry.vars)
+            {
 
-                if(v.name == eq.left) {
+                if (v.name == eq.left)
+                {
 
                     string msg =
                         "\nWARNING: EQUIVALENCE detected\n";
@@ -434,16 +470,17 @@ vector<string> analyzeEquivalence() {
     return results;
 }
 
-
-vector<string> generateMigrationAdvice() {
+vector<string> generateMigrationAdvice()
+{
 
     vector<string> advice;
 
-    for(const auto &block : groupedBlocks) {
+    for (const auto &block : groupedBlocks)
+    {
 
         const auto &entries = block.second;
 
-        if(entries.size() < 2)
+        if (entries.size() < 2)
             continue;
 
         bool issueDetected = false;
@@ -452,10 +489,11 @@ vector<string> generateMigrationAdvice() {
         int baseSize =
             getCommonSize(entries[0]);
 
-        for(size_t i = 1; i < entries.size(); i++) {
+        for (size_t i = 1; i < entries.size(); i++)
+        {
 
-            if(getCommonSize(entries[i])
-                != baseSize) {
+            if (getCommonSize(entries[i]) != baseSize)
+            {
 
                 issueDetected = true;
             }
@@ -465,22 +503,24 @@ vector<string> generateMigrationAdvice() {
         string baseLayout =
             buildLayoutSignature(entries[0]);
 
-        for(size_t i = 1; i < entries.size(); i++) {
+        for (size_t i = 1; i < entries.size(); i++)
+        {
 
             string currentLayout =
                 buildLayoutSignature(entries[i]);
 
-            if(currentLayout != baseLayout) {
+            if (currentLayout != baseLayout)
+            {
 
                 issueDetected = true;
             }
         }
 
-        if(issueDetected) {
+        if (issueDetected)
+        {
 
             string msg =
-                "\nMIGRATION ADVICE FOR COMMON BLOCK: "
-                + block.first + "\n";
+                "\nMIGRATION ADVICE FOR COMMON BLOCK: " + block.first + "\n";
 
             msg +=
                 "  Recommendation:\n";
@@ -501,23 +541,19 @@ vector<string> generateMigrationAdvice() {
                 "\n  Suggested MODULE:\n";
 
             msg +=
-                "  MODULE "
-                + block.first +
+                "  MODULE " + block.first +
                 "_MOD\n";
 
-            for(const auto &v :
-                entries[0].vars) {
+            for (const auto &v :
+                 entries[0].vars)
+            {
 
-                msg += "      "
-                    + v.type
-                    + " :: "
-                    + v.name;
+                msg += "      " + v.type + " :: " + v.name;
 
-                if(v.count > 1) {
+                if (v.count > 1)
+                {
 
-                    msg += "("
-                        + to_string(v.count)
-                        + ")";
+                    msg += "(" + to_string(v.count) + ")";
                 }
 
                 msg += "\n";
@@ -533,7 +569,8 @@ vector<string> generateMigrationAdvice() {
     return advice;
 }
 
-void printStatistics() {
+void printStatistics()
+{
 
     int totalWarnings = 0;
     int totalErrors = 0;
@@ -569,11 +606,13 @@ void printStatistics() {
 // GLOBAL DATABASE PRINTER
 // ============================================================
 
-void printGlobalDatabase() {
+void printGlobalDatabase()
+{
 
     printHeader("GLOBAL COMMON DATABASE");
 
-    for(const auto &entry : commonDB) {
+    for (const auto &entry : commonDB)
+    {
 
         cout << "\nFile: "
              << entry.fileName
@@ -583,7 +622,8 @@ void printGlobalDatabase() {
              << entry.blockName
              << "\n\n";
 
-        for(const auto &v : entry.vars) {
+        for (const auto &v : entry.vars)
+        {
 
             cout << "  Variable: "
                  << v.name
@@ -608,33 +648,32 @@ void printGlobalDatabase() {
 // MAIN
 // ============================================================
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[])
+{
     auto start =
-    chrono::high_resolution_clock::now();
-    if(argc < 2) {
+        chrono::high_resolution_clock::now();
+    if (argc < 2)
+    {
 
         cout << "Usage: ./analyzer <files>\n";
         return 1;
     }
 
     regex commonRegex(
-        R"(COMMON\s*/(\w+)/\s*(.*))"
-    );
+        R"(COMMON\s*/(\w+)/\s*(.*))");
 
     regex declRegex(
-        R"((REAL|INTEGER|DOUBLE PRECISION)\s+(\w+)(\((\d+)\))?)"
-    );
+        R"((REAL|INTEGER|DOUBLE PRECISION)\s+(\w+)(\((\d+)\))?)");
 
     regex saveRegex(
-        R"(SAVE\s*/(\w+)/)"
-    );
+        R"(SAVE\s*/(\w+)/)");
 
     regex equivalenceRegex(
-    R"(EQUIVALENCE\s*\(\s*([A-Za-z]\w*)\s*,\s*([A-Za-z]\w*)\s*\))",
-    regex_constants::icase
-);
+        R"(EQUIVALENCE\s*\(\s*([A-Za-z]\w*)\s*,\s*([A-Za-z]\w*)\s*\))",
+        regex_constants::icase);
 
-    for(int i = 1; i < argc; i++) {
+    for (int i = 1; i < argc; i++)
+    {
 
         cout << "\nProcessing File: "
              << argv[i]
@@ -642,7 +681,8 @@ int main(int argc, char* argv[]) {
 
         ifstream file(argv[i]);
 
-        if(!file) {
+        if (!file)
+        {
 
             cout << "Cannot open file\n";
             continue;
@@ -651,7 +691,7 @@ int main(int argc, char* argv[]) {
         vector<string> lines;
         string line;
 
-        while(getline(file, line))
+        while (getline(file, line))
             lines.push_back(line);
 
         file.close();
@@ -662,38 +702,35 @@ int main(int argc, char* argv[]) {
 
         // PASS 1 → SAVE
 
-       
-
-
-        for(const auto &line : lines) {
+        for (const auto &line : lines)
+        {
 
             smatch saveMatch;
 
-            if(regex_search(
-                line,
-                saveMatch,
-                saveRegex
-            )) {
+            if (regex_search(
+                    line,
+                    saveMatch,
+                    saveRegex))
+            {
 
                 saveBlocks.insert(
-                    saveMatch[1]
-                );
+                    saveMatch[1]);
             }
         }
 
         // PASS 2 → Declarations + COMMON
 
-        for(size_t lineNo = 0; lineNo < lines.size(); lineNo++)
+        for (size_t lineNo = 0; lineNo < lines.size(); lineNo++)
         {
-             string line = lines[lineNo];
+            string line = lines[lineNo];
             smatch declMatch;
             smatch eqMatch;
 
-            if(regex_search(
-                line,
-                eqMatch,
-                equivalenceRegex
-            )) {
+            if (regex_search(
+                    line,
+                    eqMatch,
+                    equivalenceRegex))
+            {
 
                 string left = eqMatch[1];
                 string right = eqMatch[2];
@@ -702,34 +739,28 @@ int main(int argc, char* argv[]) {
                     remove_if(
                         left.begin(),
                         left.end(),
-                        ::isspace
-                    ),
-                    left.end()
-                );
+                        ::isspace),
+                    left.end());
 
                 right.erase(
                     remove_if(
                         right.begin(),
                         right.end(),
-                        ::isspace
-                    ),
-                    right.end()
-                );
+                        ::isspace),
+                    right.end());
 
                 transform(
                     left.begin(),
                     left.end(),
                     left.begin(),
-                    ::toupper
-                );
+                    ::toupper);
 
                 transform(
                     right.begin(),
                     right.end(),
                     right.begin(),
-                    ::toupper
-                );
-               EquivalenceInfo eq;
+                    ::toupper);
+                EquivalenceInfo eq;
 
                 eq.fileName = argv[i];
                 eq.left = left;
@@ -743,11 +774,11 @@ int main(int argc, char* argv[]) {
                 // << "\n";
             }
 
-            if(regex_search(
-                line,
-                declMatch,
-                declRegex
-            )) {
+            if (regex_search(
+                    line,
+                    declMatch,
+                    declRegex))
+            {
 
                 VariableInfo info;
 
@@ -758,42 +789,39 @@ int main(int argc, char* argv[]) {
                     info.name.begin(),
                     info.name.end(),
                     info.name.begin(),
-                    ::toupper
-                );
+                    ::toupper);
 
-                if(declMatch[4].matched)
+                if (declMatch[4].matched)
                     info.count =
                         stoi(declMatch[4]);
                 else
                     info.count = 1;
 
                 info.totalSize =
-                    getTypeSize(info.type)
-                    * info.count;
+                    getTypeSize(info.type) * info.count;
 
                 info.alignment =
                     getAlignment(info.type);
 
-                variableTable[info.name]
-                    = info;
+                variableTable[info.name] = info;
             }
 
             smatch commonMatch;
 
-            if(regex_search(
-                line,
-                commonMatch,
-                commonRegex
-            )) {
+            if (regex_search(
+                    line,
+                    commonMatch,
+                    commonRegex))
+            {
 
                 CommonEntry entry;
 
                 entry.fileName = argv[i];
                 entry.blockName = commonMatch[1];
 
-                if(saveBlocks.find(
-                    entry.blockName
-                ) != saveBlocks.end()) {
+                if (saveBlocks.find(
+                        entry.blockName) != saveBlocks.end())
+                {
 
                     entry.hasSave = true;
                 }
@@ -805,39 +833,36 @@ int main(int argc, char* argv[]) {
 
                 string varName;
 
-                while(getline(
+                while (getline(
                     ss,
                     varName,
-                    ','
-                )) {
+                    ','))
+                {
 
                     transform(
-                    varName.begin(),
-                    varName.end(),
-                    varName.begin(),
-                    ::toupper
-                );
+                        varName.begin(),
+                        varName.end(),
+                        varName.begin(),
+                        ::toupper);
                     varName.erase(
                         remove_if(
                             varName.begin(),
                             varName.end(),
-                            ::isspace
-                        ),
-                        varName.end()
-                    );
+                            ::isspace),
+                        varName.end());
 
-                    if(variableTable.find(varName)
-                        != variableTable.end()) {
+                    if (variableTable.find(varName) != variableTable.end())
+                    {
 
                         entry.vars.push_back(
-                            variableTable[varName]
-                        );
+                            variableTable[varName]);
                     }
                 }
 
                 int currentOffset = 0;
 
-                for(auto &v : entry.vars) {
+                for (auto &v : entry.vars)
+                {
 
                     v.offset = currentOffset;
 
@@ -852,60 +877,38 @@ int main(int argc, char* argv[]) {
 
     // GROUP COMMON BLOCKS
 
-    for(const auto &entry : commonDB) {
+    for (const auto &entry : commonDB)
+    {
 
-        groupedBlocks[
-            entry.blockName
-        ].push_back(entry);
+        groupedBlocks[entry.blockName].push_back(entry);
     }
 
     // RUN ANALYSES
 
-    printAnalysis(
-        "SIZE MISMATCH ANALYSIS",
-        analyzeSizeMismatch()
-    );
+    printAnalysis( "SIZE MISMATCH ANALYSIS", analyzeSizeMismatch());
 
-    printAnalysis(
-        "TYPE PUNNING ANALYSIS",
-        analyzeTypePunning()
-    );
+    printAnalysis(  "TYPE PUNNING ANALYSIS", analyzeTypePunning());
 
-    printAnalysis(
-        "ALIGNMENT ANALYSIS",
-        analyzeAlignment()
-    );
+    printAnalysis( "ALIGNMENT ANALYSIS", analyzeAlignment());
 
-    printAnalysis(
-        "STRUCTURAL LAYOUT ANALYSIS",
-        analyzeStructuralLayouts()
-    );
+    printAnalysis("STRUCTURAL LAYOUT ANALYSIS",analyzeStructuralLayouts());
 
-    printAnalysis(
-        "SAVE ATTRIBUTE ANALYSIS",
-        analyzeSaveConsistency()
-    );
+    printAnalysis( "SAVE ATTRIBUTE ANALYSIS",  analyzeSaveConsistency());
 
-    printAnalysis(
-    "EQUIVALENCE ANALYSIS",
-    analyzeEquivalence()
-    );
+    printAnalysis(  "EQUIVALENCE ANALYSIS", analyzeEquivalence());
 
     // FINAL DATABASE
 
-    printAnalysis(
-    "MIGRATION ADVISOR",
-    generateMigrationAdvice()
-    );
+    printAnalysis( "MIGRATION ADVISOR", generateMigrationAdvice());
 
     printStatistics();
     auto end =
-    chrono::high_resolution_clock::now();
+        chrono::high_resolution_clock::now();
 
-    auto duration =chrono::duration_cast<chrono::milliseconds>(end - start);
+    auto duration = chrono::duration_cast<chrono::milliseconds>(end - start);
 
     cout << "\nAnalysis Time: "
-        << duration.count()
-        << " ms\n";
+         << duration.count()
+         << " ms\n";
     return 0;
 }

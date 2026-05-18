@@ -35,13 +35,13 @@
 
 - Structural layout comparison
 - EQUIVALENCE analysis
+- Flang AST integration (build linked, AST hooks pending)
 
 ---
 
 # Planned
 
 - SAVE attribute analysis
-- Flang AST integration
 - Migration advisor
 - JSON diagnostics
 - HTML reporting

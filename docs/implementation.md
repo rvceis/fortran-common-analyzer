@@ -32,7 +32,7 @@ Represents a complete COMMON block layout.
 
 Parsing Strategy
 
-The current prototype uses regex-based parsing.
+The current analyzer prototype in `main.cpp` uses regex-based parsing. A parallel `src/flang_parser.cpp` uses the official LLVM Flang parser to parse full Fortran code, and the next step is to unify these.
 
 Declaration Parsing
 
