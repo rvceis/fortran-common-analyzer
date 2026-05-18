@@ -20,9 +20,10 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include <iostream>
+#include <string>
 
 using namespace Fortran;
-void parseFortranFile(const std::string &fileName) {
+std::string parseFortranFile(const std::string &fileName) {
 
     parser::AllSources allSources;
 
@@ -37,10 +38,16 @@ void parseFortranFile(const std::string &fileName) {
         parser::Options{}
     );
 
-    parsing.Parse(llvm::outs());
+    // Parse into the AST without dumping errors to console directly unless needed
+    std::string errStr;
+    llvm::raw_string_ostream errOs(errStr);
+    parsing.Parse(errOs);
 
-    std::cout
-        << "Successfully parsed: "
-        << fileName
-        << "\n";
+    std::string astStr;
+    if (parsing.parseTree()) {
+        llvm::raw_string_ostream astOs(astStr);
+        parser::DumpTree(astOs, *parsing.parseTree());
+    }
+
+    return astStr;
 }

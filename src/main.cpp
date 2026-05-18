@@ -1,12 +1,12 @@
 #include <iostream>
 #include <fstream>
-#include <regex>
 #include <vector>
 #include <map>
 #include <set>
 #include <sstream>
 #include <algorithm>
 #include <chrono>
+#include "flang_parser.h"
 using namespace std;
 
 // ============================================================
@@ -169,17 +169,11 @@ vector<string> analyzeSizeMismatch()
         if (mismatch)
         {
 
-            string msg =
-                "\nERROR: COMMON Block " +
-                block.first +
-                " has inconsistent sizes\n";
+            string msg = "\nERROR: COMMON Block " + block.first + " has inconsistent sizes\n";
 
-            for (const auto &e : entries)
-            {
+            for (const auto &e : entries) {
 
-                msg += "  File: " +
-                       e.fileName +
-                       " -> " +
+                msg += "  File: " + e.fileName + " -> " +
                        to_string(getCommonSize(e)) +
                        " bytes\n";
             }
@@ -212,15 +206,11 @@ vector<string> analyzeTypePunning()
                  j++)
             {
 
-                const auto &vars1 =
-                    entries[i].vars;
+                const auto &vars1 =entries[i].vars;
 
-                const auto &vars2 =
-                    entries[j].vars;
+                const auto &vars2 =entries[j].vars;
 
-                size_t limit =
-                    min(vars1.size(),
-                        vars2.size());
+                size_t limit =min(vars1.size(), vars2.size());
 
                 for (size_t k = 0;
                      k < limit;
@@ -650,8 +640,7 @@ void printGlobalDatabase()
 
 int main(int argc, char *argv[])
 {
-    auto start =
-        chrono::high_resolution_clock::now();
+    auto start =chrono::high_resolution_clock::now();
     if (argc < 2)
     {
 
@@ -659,228 +648,201 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    regex commonRegex(
-        R"(COMMON\s*/(\w+)/\s*(.*))");
-
-    regex declRegex(
-        R"((REAL|INTEGER|DOUBLE PRECISION)\s+(\w+)(\((\d+)\))?)");
-
-    regex saveRegex(
-        R"(SAVE\s*/(\w+)/)");
-
-    regex equivalenceRegex(
-        R"(EQUIVALENCE\s*\(\s*([A-Za-z]\w*)\s*,\s*([A-Za-z]\w*)\s*\))",
-        regex_constants::icase);
-
     for (int i = 1; i < argc; i++)
     {
-
-        cout << "\nProcessing File: "
-             << argv[i]
-             << "\n";
-
-        ifstream file(argv[i]);
-
-        if (!file)
-        {
-
-            cout << "Cannot open file\n";
-            continue;
-        }
-
-        vector<string> lines;
-        string line;
-
-        while (getline(file, line))
-            lines.push_back(line);
-
-        file.close();
-
+        cout << "\nProcessing File: "<< argv[i]<< "\n";
+        string astStr = parseFortranFile(argv[i]);
         map<string, VariableInfo> variableTable;
-        // map<string, string> equivalenceMap;
         set<string> saveBlocks;
-
-        // PASS 1 → SAVE
-
-        for (const auto &line : lines)
+        
+        enum class AstState { NONE, TYPE_DECL, SAVE_STMT, EQUIV_STMT, COMMON_STMT, COMMON_BLOCK, COMMON_OBJ };
+        
+        // PASS 1: Types, Save, Equivalence
         {
+            istringstream iss(astStr);
+            string line;
+            AstState state = AstState::NONE;
+            string currentType = "REAL";
+            VariableInfo currentVar;
+            bool inEntityDecl = false;
+            string currentEqLeft = "";
 
-            smatch saveMatch;
-
-            if (regex_search(
-                    line,
-                    saveMatch,
-                    saveRegex))
-            {
-
-                saveBlocks.insert(
-                    saveMatch[1]);
-            }
-        }
-
-        // PASS 2 → Declarations + COMMON
-
-        for (size_t lineNo = 0; lineNo < lines.size(); lineNo++)
-        {
-            string line = lines[lineNo];
-            smatch declMatch;
-            smatch eqMatch;
-
-            if (regex_search(
-                    line,
-                    eqMatch,
-                    equivalenceRegex))
-            {
-
-                string left = eqMatch[1];
-                string right = eqMatch[2];
-
-                left.erase(
-                    remove_if(
-                        left.begin(),
-                        left.end(),
-                        ::isspace),
-                    left.end());
-
-                right.erase(
-                    remove_if(
-                        right.begin(),
-                        right.end(),
-                        ::isspace),
-                    right.end());
-
-                transform(
-                    left.begin(),
-                    left.end(),
-                    left.begin(),
-                    ::toupper);
-
-                transform(
-                    right.begin(),
-                    right.end(),
-                    right.begin(),
-                    ::toupper);
-                EquivalenceInfo eq;
-
-                eq.fileName = argv[i];
-                eq.left = left;
-                eq.right = right;
-
-                equivalenceDB.push_back(eq);
-                // cout << "Detected EQUIVALENCE: "
-                // << left
-                // << " <-> "
-                // << right
-                // << "\n";
-            }
-
-            if (regex_search(
-                    line,
-                    declMatch,
-                    declRegex))
-            {
-
-                VariableInfo info;
-
-                info.type = declMatch[1];
-                info.name = declMatch[2];
-                info.lineNumber = lineNo + 1;
-                transform(
-                    info.name.begin(),
-                    info.name.end(),
-                    info.name.begin(),
-                    ::toupper);
-
-                if (declMatch[4].matched)
-                    info.count =
-                        stoi(declMatch[4]);
-                else
-                    info.count = 1;
-
-                info.totalSize =
-                    getTypeSize(info.type) * info.count;
-
-                info.alignment =
-                    getAlignment(info.type);
-
-                variableTable[info.name] = info;
-            }
-
-            smatch commonMatch;
-
-            if (regex_search(
-                    line,
-                    commonMatch,
-                    commonRegex))
-            {
-
-                CommonEntry entry;
-
-                entry.fileName = argv[i];
-                entry.blockName = commonMatch[1];
-
-                if (saveBlocks.find(
-                        entry.blockName) != saveBlocks.end())
-                {
-
-                    entry.hasSave = true;
+            while (getline(iss, line)) {
+                if (line.find("TypeDeclarationStmt") != string::npos) {
+                    if (inEntityDecl) {
+                        currentVar.totalSize = getTypeSize(currentVar.type) * currentVar.count;
+                        currentVar.alignment = getAlignment(currentVar.type);
+                        variableTable[currentVar.name] = currentVar;
+                        inEntityDecl = false;
+                    }
+                    state = AstState::TYPE_DECL;
+                    currentType = "REAL";
+                } else if (line.find("SaveStmt") != string::npos) {
+                    state = AstState::SAVE_STMT;
+                } else if (line.find("EquivalenceStmt") != string::npos) {
+                    state = AstState::EQUIV_STMT;
+                    currentEqLeft = "";
+                } else if (line.find("->") != string::npos && line.find("SpecificationConstruct") != string::npos) {
+                    if (inEntityDecl) {
+                        currentVar.totalSize = getTypeSize(currentVar.type) * currentVar.count;
+                        currentVar.alignment = getAlignment(currentVar.type);
+                        variableTable[currentVar.name] = currentVar;
+                        inEntityDecl = false;
+                    }
+                    state = AstState::NONE;
                 }
 
-                string variableList =
-                    commonMatch[2];
-
-                stringstream ss(variableList);
-
-                string varName;
-
-                while (getline(
-                    ss,
-                    varName,
-                    ','))
-                {
-
-                    transform(
-                        varName.begin(),
-                        varName.end(),
-                        varName.begin(),
-                        ::toupper);
-                    varName.erase(
-                        remove_if(
-                            varName.begin(),
-                            varName.end(),
-                            ::isspace),
-                        varName.end());
-
-                    if (variableTable.find(varName) != variableTable.end())
-                    {
-
-                        entry.vars.push_back(
-                            variableTable[varName]);
+                if (state == AstState::TYPE_DECL) {
+                    if (line.find("IntrinsicTypeSpec -> Real") != string::npos) currentType = "REAL";
+                    else if (line.find("IntegerTypeSpec") != string::npos) currentType = "INTEGER";
+                    else if (line.find("DoublePrecision") != string::npos) currentType = "DOUBLE PRECISION";
+                    
+                    if (line.find("EntityDecl") != string::npos) {
+                        if (inEntityDecl) {
+                            currentVar.totalSize = getTypeSize(currentVar.type) * currentVar.count;
+                            currentVar.alignment = getAlignment(currentVar.type);
+                            variableTable[currentVar.name] = currentVar;
+                        }
+                        inEntityDecl = true;
+                        currentVar = VariableInfo();
+                        currentVar.type = currentType;
+                        currentVar.count = 1;
+                    }
+                    if (inEntityDecl) {
+                        if (line.find("Name = '") != string::npos) {
+                            size_t start = line.find("'") + 1;
+                            size_t end = line.find("'", start);
+                            currentVar.name = line.substr(start, end - start);
+                            transform(currentVar.name.begin(), currentVar.name.end(), currentVar.name.begin(), ::toupper);
+                        }
+                        if (line.find("IntLiteralConstant = '") != string::npos) {
+                            size_t start = line.find("'") + 1;
+                            size_t end = line.find("'", start);
+                            currentVar.count = stoi(line.substr(start, end - start));
+                        }
+                    }
+                } else if (state == AstState::SAVE_STMT) {
+                    if (line.find("Name = '") != string::npos) {
+                        size_t start = line.find("'") + 1;
+                        size_t end = line.find("'", start);
+                        string name = line.substr(start, end - start);
+                        transform(name.begin(), name.end(), name.begin(), ::toupper);
+                        saveBlocks.insert(name);
+                    }
+                } else if (state == AstState::EQUIV_STMT) {
+                    if (line.find("Name = '") != string::npos) {
+                        size_t start = line.find("'") + 1;
+                        size_t end = line.find("'", start);
+                        string name = line.substr(start, end - start);
+                        transform(name.begin(), name.end(), name.begin(), ::toupper);
+                        if (currentEqLeft.empty()) {
+                            currentEqLeft = name;
+                        } else {
+                            EquivalenceInfo eq;
+                            eq.fileName = argv[i];
+                            eq.left = currentEqLeft;
+                            eq.right = name;
+                            equivalenceDB.push_back(eq);
+                            currentEqLeft = ""; 
+                        }
                     }
                 }
-
-                int currentOffset = 0;
-
-                for (auto &v : entry.vars)
-                {
-
-                    v.offset = currentOffset;
-
-                    currentOffset +=
-                        v.totalSize;
-                }
-
-                commonDB.push_back(entry);
+            }
+            if (inEntityDecl) {
+                currentVar.totalSize = getTypeSize(currentVar.type) * currentVar.count;
+                currentVar.alignment = getAlignment(currentVar.type);
+                variableTable[currentVar.name] = currentVar;
             }
         }
-    }
 
-    // GROUP COMMON BLOCKS
-
-    for (const auto &entry : commonDB)
-    {
-
-        groupedBlocks[entry.blockName].push_back(entry);
+        // PASS 2: COMMON blocks
+        {
+            istringstream iss(astStr);
+            string line;
+            AstState state = AstState::NONE;
+            
+            CommonEntry currentEntry;
+            bool inBlock = false;
+            
+            while (getline(iss, line)) {
+                if (line.find("CommonStmt") != string::npos) {
+                    state = AstState::COMMON_STMT;
+                    if (inBlock && !currentEntry.blockName.empty()) {
+                        if (saveBlocks.find(currentEntry.blockName) != saveBlocks.end()) {
+                            currentEntry.hasSave = true;
+                        }
+                        commonDB.push_back(currentEntry);
+                        groupedBlocks[currentEntry.blockName].push_back(currentEntry);
+                    }
+                    inBlock = false;
+                } else if (state == AstState::COMMON_STMT || state == AstState::COMMON_BLOCK || state == AstState::COMMON_OBJ) {
+                    if (line.find("| | | Block") != string::npos) {
+                        if (inBlock && !currentEntry.blockName.empty()) {
+                            if (saveBlocks.find(currentEntry.blockName) != saveBlocks.end()) {
+                                currentEntry.hasSave = true;
+                            }
+                            commonDB.push_back(currentEntry);
+                            groupedBlocks[currentEntry.blockName].push_back(currentEntry);
+                        }
+                        inBlock = true;
+                        currentEntry = CommonEntry();
+                        currentEntry.fileName = argv[i];
+                        currentEntry.blockName = "_BLANK_"; // default if unnamed
+                        state = AstState::COMMON_BLOCK;
+                    } else if (line.find("CommonBlockObject") != string::npos) {
+                        state = AstState::COMMON_OBJ;
+                    } else if (line.find("Name = '") != string::npos) {
+                        size_t start = line.find("'") + 1;
+                        size_t end = line.find("'", start);
+                        string name = line.substr(start, end - start);
+                        transform(name.begin(), name.end(), name.begin(), ::toupper);
+                        
+                        if (state == AstState::COMMON_BLOCK) {
+                            currentEntry.blockName = name;
+                        } else if (state == AstState::COMMON_OBJ) {
+                            VariableInfo v;
+                            if (variableTable.find(name) != variableTable.end()) {
+                                v = variableTable[name];
+                            } else {
+                                v.name = name;
+                                v.type = "REAL"; // Implicit default
+                                v.count = 1;
+                                v.totalSize = 4;
+                                v.alignment = 4;
+                            }
+                            int currentOffset = 0;
+                            if (!currentEntry.vars.empty()) {
+                                const auto& lastVar = currentEntry.vars.back();
+                                currentOffset = lastVar.offset + lastVar.totalSize;
+                                int align = v.alignment;
+                                if (currentOffset % align != 0) {
+                                    currentOffset += (align - (currentOffset % align));
+                                }
+                            }
+                            v.offset = currentOffset;
+                            currentEntry.vars.push_back(v);
+                        }
+                    } else if (line.find("->") != string::npos && line.find("Block") == string::npos && line.find("CommonBlockObject") == string::npos) {
+                        if (inBlock && !currentEntry.blockName.empty()) {
+                            if (saveBlocks.find(currentEntry.blockName) != saveBlocks.end()) {
+                                currentEntry.hasSave = true;
+                            }
+                            commonDB.push_back(currentEntry);
+                            groupedBlocks[currentEntry.blockName].push_back(currentEntry);
+                        }
+                        inBlock = false;
+                        state = AstState::NONE;
+                    }
+                }
+            }
+            if (inBlock && !currentEntry.blockName.empty()) {
+                if (saveBlocks.find(currentEntry.blockName) != saveBlocks.end()) {
+                    currentEntry.hasSave = true;
+                }
+                commonDB.push_back(currentEntry);
+                groupedBlocks[currentEntry.blockName].push_back(currentEntry);
+            }
+        }
     }
 
     // RUN ANALYSES

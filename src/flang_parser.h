@@ -3,6 +3,6 @@
 
 #include <string>
 
-void parseFortranFile(const std::string &fileName);
+std::string parseFortranFile(const std::string &fileName);
 
 #endif
