@@ -31,20 +31,26 @@
 
 ---
 
-# In Progress
-
+## Phase 6 — Advanced Semantic Validation
 - Structural layout comparison
 - EQUIVALENCE analysis
-- Flang AST integration (build linked, AST hooks pending)
+- SAVE attribute analysis
+- Migration advisor
+
+## Phase 7 — Architectural Migration
+- Flang AST string parsing integration
+- Removal of regex prototype
+
+---
+
+# In Progress
+- JSON diagnostics
+- HTML reporting
 
 ---
 
 # Planned
-
-- SAVE attribute analysis
-- Migration advisor
-- JSON diagnostics
-- HTML reporting
+- CFG-based storage analysis
 
 ---
 

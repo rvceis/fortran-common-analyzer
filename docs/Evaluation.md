@@ -53,9 +53,8 @@ Detected improperly aligned DOUBLE PRECISION variables.
 
 # Limitations
 
-- Regex prototype parser is still the primary engine in `main.cpp`.
-- The new LLVM/Flang parser has been integrated into the build system but not fully hooked into the analysis pipeline.
-- Limited semantic analysis until AST traversal is complete.
+- Flang AST dump parsing relies on textual layout from `DumpTree` rather than native C++ Visitor nodes.
+- Limited semantic analysis; control flow and procedure boundaries are not yet deeply inspected.
 
 ---
 

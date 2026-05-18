@@ -32,7 +32,7 @@ Represents a complete COMMON block layout.
 
 Parsing Strategy
 
-The current analyzer prototype in `main.cpp` uses regex-based parsing. A parallel `src/flang_parser.cpp` uses the official LLVM Flang parser to parse full Fortran code, and the next step is to unify these.
+The analyzer fully utilizes the LLVM Flang compiler API (`src/flang_parser.cpp`). It invokes `Fortran::parser::DumpTree` to serialize the Fortran AST into a highly structured string representation, which is then parsed by `main.cpp` to extract variables, `COMMON` blocks, `EQUIVALENCE`, and `SAVE` attributes.
 
 Declaration Parsing
 
