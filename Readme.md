@@ -40,9 +40,14 @@ src/            -> Source code
 testcases/      -> Fortran test programs
 build/          -> Compiled binaries
 docs/           -> Documentation
+demo/           -> Screenshots/Video for submission
 build.sh        -> Build script
 run.sh          -> Run script
 ```
+
+# Demo
+
+
 
 # Build Instructions
 chmod +x build.sh
