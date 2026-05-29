@@ -1,6 +1,4 @@
-# `PROGRESS.md`
 
-```md id="7v1q8m"
 # PROJECT PROGRESS
 
 # Completed
